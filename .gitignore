@@ -17,3 +17,8 @@ _pkg_tmp/
 # Python packaging leftovers
 __pycache__/
 *.pyc
+
+# Local release packaging
+release/
+codex-history-browser-v*.zip
+
