@@ -1,0 +1,19 @@
+﻿# Build and temp artifacts
+build/
+*.obj
+*.pdb
+*.codexpkg
+*.log
+
+# Local exported session data
+codex-history-export*/
+codex-history-export*.zip
+codex-sessions.codexpkg
+_pkg_tmp/
+
+# Compiled binaries are shipped via Releases
+*.exe
+
+# Python packaging leftovers
+__pycache__/
+*.pyc

@@ -1,0 +1,29 @@
+[Version]
+Class=IEXPRESS
+SEDVersion=3
+[Options]
+PackagePurpose=InstallApp
+ShowInstallProgramWindow=1
+HideExtractAnimation=1
+UseLongFileName=1
+InsideCompressed=0
+CAB_FixedSize=0
+CAB_ResvCodeSigning=0
+RebootMode=N
+InstallPrompt=
+DisplayLicense=
+FinishMessage=
+TargetName=F:\??????\tools\codex-migrate\codex-migrate.exe
+FriendlyName=Codex History Migration
+AppLaunched=cmd /c ""launcher.cmd""
+PostInstallCmd=<None>
+AdminQuietInstCmd=
+UserQuietInstCmd=
+SourceFiles=SourceFiles
+[SourceFiles]
+SourceFiles0=F:\??????\tools\codex-migrate
+[SourceFiles0]
+launcher.cmd=
+export.cmd=
+import.cmd=
+README.txt=
