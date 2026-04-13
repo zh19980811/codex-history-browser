@@ -462,21 +462,33 @@ public class MainForm : Form
 
         var lines = ReadAllLinesShared(item.Path);
         if (lines == null) return;
+        bool any = false;
         foreach (var line in lines)
         {
             var dict = ParseJson(line);
             if (dict == null) continue;
-            if (chkHideMeta.Checked && IsMeta(dict)) continue;
-
-            string role = GetString(dict, "role") ?? "";
-            string content = GetString(dict, "content") ?? "";
+            string role;
+            string content;
+            if (!TryExtractDisplayMessage(dict, out role, out content))
+            {
+                if (chkHideMeta.Checked && IsMeta(dict)) continue;
+                role = GetString(dict, "role") ?? "";
+                content = GetString(dict, "content") ?? "";
+            }
             if (string.IsNullOrWhiteSpace(content)) continue;
 
             Color color = role == "assistant" ? Color.FromArgb(52, 104, 192)
+                : role == "developer" ? Color.FromArgb(110, 110, 110)
                 : role == "system" ? Color.FromArgb(120, 120, 120)
                 : Color.FromArgb(30, 30, 30);
 
-            AppendLine(preview, string.Format("{0}: {1}", role, content), color);
+            AppendLine(preview, string.Format("{0}: {1}\n\n", role, content), color);
+            any = true;
+        }
+
+        if (!any)
+        {
+            AppendLine(preview, L("没有提取到可显示的聊天文本。", "No displayable chat text was extracted."), Color.FromArgb(120, 120, 120));
         }
     }
 
@@ -955,8 +967,57 @@ MessageBox.Show(L("导入完成。", "Import completed."));
     private bool IsMeta(Dictionary<string, object> dict)
     {
         string t = GetString(dict, "type");
-        if (!string.IsNullOrWhiteSpace(t) && t == "meta") return true;
+        if (!string.IsNullOrWhiteSpace(t) && t != "response_item") return true;
+        var payload = GetPayload(dict);
+        string pt = GetString(payload, "type");
+        if (!string.IsNullOrWhiteSpace(pt) && pt != "message") return true;
         return false;
+    }
+
+    private bool TryExtractDisplayMessage(Dictionary<string, object> dict, out string role, out string content)
+    {
+        role = null;
+        content = null;
+
+        string type = GetString(dict, "type");
+        var payload = GetPayload(dict);
+
+        if (type == "response_item")
+        {
+            string payloadType = GetString(payload, "type");
+            if (payloadType == "message")
+            {
+                role = GetString(payload, "role") ?? GetString(dict, "role");
+                content = ExtractContentText(payload);
+                if (string.IsNullOrWhiteSpace(content))
+                {
+                    content = GetString(payload, "message") ?? GetString(payload, "text");
+                }
+                content = NormalizeDisplayText(content);
+                return !string.IsNullOrWhiteSpace(content);
+            }
+        }
+
+        if (type == "event_msg")
+        {
+            string payloadType = GetString(payload, "type");
+            if (payloadType == "user_message")
+            {
+                role = "user";
+                content = NormalizeDisplayText(GetString(payload, "message"));
+                return !string.IsNullOrWhiteSpace(content);
+            }
+            if (payloadType == "agent_message")
+            {
+                role = "assistant";
+                content = NormalizeDisplayText(GetString(payload, "message"));
+                return !string.IsNullOrWhiteSpace(content);
+            }
+        }
+
+        role = GetString(payload, "role") ?? GetString(dict, "role");
+        content = NormalizeDisplayText(GetString(payload, "content") ?? GetString(dict, "content"));
+        return !string.IsNullOrWhiteSpace(content);
     }
 
     private static string GetString(Dictionary<string, object> dict, string key)
@@ -964,6 +1025,41 @@ MessageBox.Show(L("导入完成。", "Import completed."));
         if (dict == null || !dict.ContainsKey(key)) return null;
         var v = dict[key];
         return v == null ? null : v.ToString();
+    }
+
+    private static string ExtractContentText(Dictionary<string, object> dict)
+    {
+        if (dict == null || !dict.ContainsKey("content")) return null;
+
+        var raw = dict["content"];
+        if (raw == null) return null;
+
+        var s = raw as string;
+        if (s != null) return s;
+
+        var list = raw as ArrayList;
+        if (list == null) return raw.ToString();
+
+        var parts = new List<string>();
+        foreach (var item in list)
+        {
+            var part = item as Dictionary<string, object>;
+            if (part == null) continue;
+
+            string text = GetString(part, "text");
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                var nested = part.ContainsKey("content") ? part["content"] as Dictionary<string, object> : null;
+                text = GetString(nested, "text");
+            }
+
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                parts.Add(text);
+            }
+        }
+
+        return parts.Count == 0 ? null : string.Join("\n", parts.ToArray());
     }
 
     private static Dictionary<string, object> GetPayload(Dictionary<string, object> dict)
@@ -998,6 +1094,12 @@ MessageBox.Show(L("导入完成。", "Import completed."));
         long r;
         long.TryParse(v.ToString(), out r);
         return r;
+    }
+
+    private static string NormalizeDisplayText(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        return text.Replace("\r\n", "\n").Replace("\r", "\n").Trim();
     }
 
     private static void AppendLine(RichTextBox box, string text, Color color)

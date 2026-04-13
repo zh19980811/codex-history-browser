@@ -4,15 +4,11 @@ Windows desktop tool for browsing, renaming, moving, exporting, and importing lo
 
 ## Features
 
-- Browse local Codex sessions under `.codex`
-- Group sessions by workspace
-- Preview chat content inside the app
-- Rename sessions and sync titles back to Codex metadata
-- Move sessions to another workspace path
-- Export selected sessions into a portable package
-- Import exported sessions on another computer
-- Chinese / English UI switch
-- Crash log written to `%TEMP%\codex-history-browser\crash.log`
+- Browse local Codex logs under `.codex`
+- Rename sessions
+- Change the workspace folder path of a session
+- Move sessions between different devices with export/import packages
+- Chinese / English UI support
 
 ## Main Files
 
